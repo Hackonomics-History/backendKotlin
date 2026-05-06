@@ -1,0 +1,3 @@
+-- V1 Baseline: schema is managed by Django migrations.
+-- Flyway is disabled (spring.flyway.enabled=false).
+-- This file exists as a reference baseline only.
