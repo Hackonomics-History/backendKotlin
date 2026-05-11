@@ -67,6 +67,10 @@ dependencies {
 }
 
 // ── Protobuf / gRPC code generation ──────────────────────────────────────────
+// Uses protoc 3.25.3 to generate code compatible with grpc-protobuf:1.62.2.
+// buf.gen.kotlin.yaml documents equivalent buf remote plugin configuration;
+// buf remote plugins currently emit protobuf v4.x code which requires
+// upgrading grpc to 1.68+ and protobuf-java to 4.x before switching.
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:$protobufVersion"
@@ -90,12 +94,13 @@ protobuf {
             }
         }
     }
-    // Point to the shared proto directory so auth.proto + ai.proto are found
-    sourceSets {
-        main {
-            proto {
-                srcDir("${rootProject.projectDir}/../proto")
-            }
+}
+
+// Points to the shared proto directory so auth.proto, ai.proto, kafka.proto are all found.
+sourceSets {
+    main {
+        proto {
+            srcDir("proto")
         }
     }
 }
