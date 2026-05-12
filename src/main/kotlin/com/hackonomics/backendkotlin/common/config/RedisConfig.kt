@@ -39,7 +39,6 @@ class RedisConfig(private val objectMapper: ObjectMapper) {
             "business_news"  to base.entryTtl(Duration.ofHours(6)),
             "exchange_rates" to base.entryTtl(Duration.ofHours(1)),
             "countries"      to base.entryTtl(Duration.ofHours(24)),
-            "jwks"           to base.entryTtl(Duration.ofMinutes(3)),
         )
 
         return RedisCacheManager.builder(factory)

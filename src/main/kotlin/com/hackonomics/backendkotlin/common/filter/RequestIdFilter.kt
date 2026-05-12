@@ -12,9 +12,16 @@ import java.util.UUID
 @Order(1)
 class RequestIdFilter : OncePerRequestFilter() {
     override fun doFilterInternal(req: HttpServletRequest, res: HttpServletResponse, chain: FilterChain) {
-        val id = req.getHeader("X-Request-ID") ?: UUID.randomUUID().toString()
-        req.setAttribute("requestId", id)
-        res.setHeader("X-Request-ID", id)
+        val requestId = req.getHeader("X-Request-ID") ?: UUID.randomUUID().toString()
+        req.setAttribute("requestId", requestId)
+        res.setHeader("X-Request-ID", requestId)
+
+        // Propagate correlation ID set by central-auth; echo it back in the response
+        // so client-side and distributed tracing tools can correlate cross-service calls.
+        val correlationId = req.getHeader("X-Correlation-ID") ?: requestId
+        req.setAttribute("correlationId", correlationId)
+        res.setHeader("X-Correlation-ID", correlationId)
+
         chain.doFilter(req, res)
     }
 }

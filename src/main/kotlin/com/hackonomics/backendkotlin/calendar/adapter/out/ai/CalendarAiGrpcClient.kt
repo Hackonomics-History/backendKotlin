@@ -1,7 +1,7 @@
 package com.hackonomics.backendkotlin.calendar.adapter.out.ai
 
-import ai.v1.CalendarAdviceRequest
-import ai.v1.CalendarAiServiceGrpcKt
+import com.hackonomics.backendkotlin.ai.v1.CalendarAdviceRequest
+import com.hackonomics.backendkotlin.ai.v1.CalendarAiServiceGrpcKt
 import io.grpc.ManagedChannelBuilder
 import io.grpc.Metadata
 import jakarta.annotation.PreDestroy

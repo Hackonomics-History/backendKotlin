@@ -27,6 +27,12 @@ class OryIdentityArgumentResolver : HandlerMethodArgumentResolver {
             as? JwtAuthenticationToken
             ?: throw BusinessException(ErrorCode.UNAUTHORIZED)
         val sub = auth.token.subject ?: throw BusinessException(ErrorCode.UNAUTHORIZED)
-        return OryIdentity(sub)
+
+        val ext = auth.token.claims["ext"] as? Map<*, *>
+        val roles = (ext?.get("roles") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+        val permissions = (ext?.get("permissions") as? List<*>)?.filterIsInstance<String>()?.toSet() ?: emptySet()
+        val deviceId = ext?.get("device_id") as? String
+
+        return OryIdentity(id = sub, roles = roles, permissions = permissions, deviceId = deviceId)
     }
 }

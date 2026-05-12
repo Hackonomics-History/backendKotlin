@@ -1,8 +1,8 @@
 package com.hackonomics.backendkotlin.news.adapter.out.ai
 
-import ai.v1.ChatStreamRequest
-import ai.v1.GenerateNewsRequest
-import ai.v1.NewsAiServiceGrpcKt
+import com.hackonomics.backendkotlin.ai.v1.ChatStreamRequest
+import com.hackonomics.backendkotlin.ai.v1.GenerateNewsRequest
+import com.hackonomics.backendkotlin.ai.v1.NewsAiServiceGrpcKt
 import io.grpc.ManagedChannelBuilder
 import io.grpc.Metadata
 import jakarta.annotation.PreDestroy
@@ -36,9 +36,12 @@ class NewsAiGrpcClient(
             .setForce(force)
             .setRequestId(UUID.randomUUID().toString())
             .build()
+
         val resp = stub.generateNews(req, meta())
-        log.info("GenerateNews({}) → {} items", countryCode, resp.itemsCount)
-        return resp.itemsList.map { it.title to it.description }
+
+        return resp.newsItemsList.map { item ->
+            item.title to item.description
+        }
     }
 
     fun chatStream(question: String, countryCode: String, userId: String): Flow<String> {
