@@ -16,7 +16,9 @@ spring:
         jdbc:
           time_zone: UTC
   flyway:
-    enabled: false    # schema already managed by Django migrations
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
@@ -49,6 +51,7 @@ spring:
 ai-service:
   grpc:
     target: ${AI_SERVICE_GRPC_TARGET:localhost:50052}
+  internal-token: ${AI_SERVICE_INTERNAL_TOKEN:internal-token}
 
 server:
   port: 8080
