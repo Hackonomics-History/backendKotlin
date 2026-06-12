@@ -3,6 +3,7 @@ package com.hackonomics.backendkotlin.exchange.application.service
 import com.hackonomics.backendkotlin.account.application.port.out.ExchangeRatePort
 import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRatePoint
 import com.hackonomics.backendkotlin.exchange.adapter.out.cache.ExchangeHistoryCache
+import com.hackonomics.backendkotlin.exchange.application.port.out.ExchangeHistoryPort
 import com.hackonomics.backendkotlin.exchange.application.port.out.FrankfurterPort
 import com.hackonomics.backendkotlin.exchange.domain.ExchangePeriod
 import org.springframework.stereotype.Service
@@ -12,12 +13,12 @@ import java.time.LocalDate
 class ExchangeService(
     private val frankfurter: FrankfurterPort,
     private val historyCache: ExchangeHistoryCache,
-) : ExchangeRatePort {
+) : ExchangeRatePort, ExchangeHistoryPort {
 
     override fun getUsdRate(targetCurrency: String): Double =
         frankfurter.getLatestRate("USD", targetCurrency)
 
-    fun getUsdHistoryUntilToday(currency: String?, period: String?): List<ExchangeRatePoint> {
+    override fun getUsdHistoryUntilToday(currency: String?, period: String?): List<ExchangeRatePoint> {
         val cur = (currency ?: DEFAULT_CURRENCY).uppercase()
         val p = ExchangePeriod.fromLabel(period ?: DEFAULT_PERIOD)
         val end = LocalDate.now()
