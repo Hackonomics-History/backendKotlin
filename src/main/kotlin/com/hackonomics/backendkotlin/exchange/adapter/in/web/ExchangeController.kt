@@ -1,6 +1,5 @@
 package com.hackonomics.backendkotlin.exchange.adapter.`in`.web
 
-import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRatePoint
 import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRateResponse
 import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRateSeriesResponse
 import com.hackonomics.backendkotlin.exchange.application.service.ExchangeService
@@ -24,7 +23,7 @@ class ExchangeController(private val service: ExchangeService) {
         @RequestParam(required = false) currency: String?,
         @RequestParam(defaultValue = "6m") period: String,
     ): ResponseEntity<ExchangeRateSeriesResponse> {
-        val cur = (currency ?: service.defaultCurrency).uppercase()
+        val cur = (currency ?: ExchangeService.DEFAULT_CURRENCY).uppercase()
         val history = service.getUsdHistoryUntilToday(currency, period)
         return ResponseEntity.ok(
             ExchangeRateSeriesResponse(
@@ -32,7 +31,7 @@ class ExchangeController(private val service: ExchangeService) {
                 target = cur,
                 period = period,
                 endDate = LocalDate.now().toString(),
-                history = history.map { ExchangeRatePoint(it.date, it.rate) },
+                history = history,
             )
         )
     }

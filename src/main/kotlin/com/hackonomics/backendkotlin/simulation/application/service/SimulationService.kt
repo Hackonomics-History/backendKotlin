@@ -3,8 +3,8 @@ package com.hackonomics.backendkotlin.simulation.application.service
 import com.hackonomics.backendkotlin.account.application.port.out.AccountRepository
 import com.hackonomics.backendkotlin.common.error.BusinessException
 import com.hackonomics.backendkotlin.common.error.ErrorCode
+import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRatePoint
 import com.hackonomics.backendkotlin.exchange.application.service.ExchangeService
-import com.hackonomics.backendkotlin.exchange.application.service.HistoryRow
 import com.hackonomics.backendkotlin.simulation.domain.SimulationResult
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -82,9 +82,9 @@ class SimulationService(
         )
     }
 
-    private fun extractMonthlyRates(history: List<HistoryRow>, months: Int): List<HistoryRow> {
+    private fun extractMonthlyRates(history: List<ExchangeRatePoint>, months: Int): List<ExchangeRatePoint> {
         val seen = mutableSetOf<Pair<Int, Int>>()
-        val result = mutableListOf<HistoryRow>()
+        val result = mutableListOf<ExchangeRatePoint>()
         for (h in history) {
             val d = LocalDate.parse(h.date)
             val key = d.year to d.monthValue
