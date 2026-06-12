@@ -1,19 +1,26 @@
+// SKAFFOLD-SYNC-MARKER-20260611
+// SKAFFOLD-SYNC-MARKER-SECOND-20260611
 package com.hackonomics.backendkotlin.auth.resolver
 
+import com.hackonomics.backendkotlin.auth.config.BffAuthenticationToken
 import com.hackonomics.backendkotlin.auth.domain.OryIdentity
 import com.hackonomics.backendkotlin.common.error.BusinessException
 import com.hackonomics.backendkotlin.common.error.ErrorCode
+import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.springframework.core.MethodParameter
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.support.WebDataBinderFactory
 import org.springframework.web.context.request.NativeWebRequest
 import org.springframework.web.method.support.HandlerMethodArgumentResolver
 import org.springframework.web.method.support.ModelAndViewContainer
 
+private val log = LoggerFactory.getLogger(OryIdentityArgumentResolver::class.java)
+
 @Component
 class OryIdentityArgumentResolver : HandlerMethodArgumentResolver {
+
     override fun supportsParameter(parameter: MethodParameter): Boolean =
         parameter.parameterType == OryIdentity::class.java
 
@@ -23,16 +30,29 @@ class OryIdentityArgumentResolver : HandlerMethodArgumentResolver {
         webRequest: NativeWebRequest,
         binderFactory: WebDataBinderFactory?,
     ): OryIdentity {
+
         val auth = SecurityContextHolder.getContext().authentication
-            as? JwtAuthenticationToken
+
+        log.info(
+            "[ORY-RESOLVER1] authClass={} principal={}",
+            auth?.javaClass?.simpleName,
+            auth?.principal,
+        )
+
+        val bffAuth = auth as? BffAuthenticationToken
             ?: throw BusinessException(ErrorCode.UNAUTHORIZED)
-        val sub = auth.token.subject ?: throw BusinessException(ErrorCode.UNAUTHORIZED)
 
-        val ext = auth.token.claims["ext"] as? Map<*, *>
-        val roles = (ext?.get("roles") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
-        val permissions = (ext?.get("permissions") as? List<*>)?.filterIsInstance<String>()?.toSet() ?: emptySet()
-        val deviceId = ext?.get("device_id") as? String
+        val userId = bffAuth.principal
+            ?: throw BusinessException(ErrorCode.UNAUTHORIZED)
 
-        return OryIdentity(id = sub, roles = roles, permissions = permissions, deviceId = deviceId)
+        val request =
+            webRequest.getNativeRequest(HttpServletRequest::class.java)
+
+        val deviceId = request?.getHeader("X-Device-ID")
+
+        return OryIdentity(
+            id = userId,
+            deviceId = deviceId,
+        )
     }
 }

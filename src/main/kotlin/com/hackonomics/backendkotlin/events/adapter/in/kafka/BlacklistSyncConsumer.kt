@@ -1,6 +1,6 @@
 package com.hackonomics.backendkotlin.events.adapter.`in`.kafka
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.kafka.annotation.KafkaListener

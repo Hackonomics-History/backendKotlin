@@ -21,7 +21,7 @@ data class AdviceItem(
 @Component
 class CalendarAiGrpcClient(
     @Value("\${ai-service.grpc.target:localhost:50052}") private val target: String,
-    @Value("\${ai-service.internal-token:internal-token}") private val token: String,
+    @Value("\${ai-service.internal-token}") private val token: String,
 ) {
     private val channel = ManagedChannelBuilder.forTarget(target)
         .usePlaintext()

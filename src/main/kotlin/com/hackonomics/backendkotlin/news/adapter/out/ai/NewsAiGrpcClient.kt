@@ -11,14 +11,22 @@ import kotlinx.coroutines.flow.map
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.time.Instant
 import java.util.UUID
 
 private val log = LoggerFactory.getLogger(NewsAiGrpcClient::class.java)
 
+data class NewsGenerateResult(
+    val countryCode: String,
+    val items: List<Map<String, String>>,
+    val generatedAt: Instant?,
+    val itemsCount: Int,
+)
+
 @Component
 class NewsAiGrpcClient(
     @Value("\${ai-service.grpc.target:localhost:50052}") private val target: String,
-    @Value("\${ai-service.internal-token:internal-token}") private val token: String,
+    @Value("\${ai-service.internal-token}") private val token: String,
 ) {
     private val channel = ManagedChannelBuilder.forTarget(target)
         .usePlaintext()
@@ -42,6 +50,27 @@ class NewsAiGrpcClient(
         return resp.newsItemsList.map { item ->
             item.title to item.description
         }
+    }
+
+    suspend fun generateNewsFull(countryCode: String, force: Boolean): NewsGenerateResult {
+        val req = GenerateNewsRequest.newBuilder()
+            .setCountryCode(countryCode)
+            .setForce(force)
+            .setRequestId(UUID.randomUUID().toString())
+            .build()
+
+        val resp = stub.generateNews(req, meta())
+
+        val generatedAt = if (resp.hasGeneratedAt()) {
+            Instant.ofEpochSecond(resp.generatedAt.seconds, resp.generatedAt.nanos.toLong())
+        } else null
+
+        return NewsGenerateResult(
+            countryCode = resp.countryCode.ifEmpty { countryCode },
+            items = resp.newsItemsList.map { mapOf("title" to it.title, "description" to it.description) },
+            generatedAt = generatedAt,
+            itemsCount = resp.itemsCount,
+        )
     }
 
     fun chatStream(question: String, countryCode: String, userId: String): Flow<String> {
