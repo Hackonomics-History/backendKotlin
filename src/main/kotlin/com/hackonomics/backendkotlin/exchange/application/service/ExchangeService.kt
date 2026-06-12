@@ -2,13 +2,13 @@ package com.hackonomics.backendkotlin.exchange.application.service
 
 import com.hackonomics.backendkotlin.account.application.port.out.ExchangeRatePort
 import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRatePoint
-import com.hackonomics.backendkotlin.exchange.adapter.out.external.FrankfurterClient
+import com.hackonomics.backendkotlin.exchange.application.port.out.FrankfurterPort
 import com.hackonomics.backendkotlin.exchange.domain.ExchangePeriod
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
 @Service
-class ExchangeService(private val frankfurter: FrankfurterClient) : ExchangeRatePort {
+class ExchangeService(private val frankfurter: FrankfurterPort) : ExchangeRatePort {
 
     override fun getUsdRate(targetCurrency: String): Double =
         frankfurter.getLatestRate("USD", targetCurrency)

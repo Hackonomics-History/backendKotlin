@@ -1,10 +1,11 @@
 package com.hackonomics.backendkotlin.exchange.adapter.out.external
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.ObjectMapper
 import com.hackonomics.backendkotlin.common.cache.DistributedL1L2Cache
 import com.hackonomics.backendkotlin.common.error.BusinessException
 import com.hackonomics.backendkotlin.common.error.ErrorCode
+import com.hackonomics.backendkotlin.exchange.application.port.out.FrankfurterPort
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
@@ -18,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 class FrankfurterClient(
     private val redisTemplate: RedisTemplate<String, String>,
     private val objectMapper: ObjectMapper,
-) {
+) : FrankfurterPort {
     private val log = LoggerFactory.getLogger(javaClass)
     private val client = RestClient.create("https://api.frankfurter.app")
 
@@ -27,7 +28,7 @@ class FrankfurterClient(
     // Jitter (0–10 min) on top of L1 base desynchronises pods that started simultaneously.
     private val ratesCaches = ConcurrentHashMap<String, DistributedL1L2Cache<Map<String, Double>>>()
 
-    fun getLatestRate(base: String, target: String): Double =
+    override fun getLatestRate(base: String, target: String): Double =
         try {
             ratesCaches.computeIfAbsent(base) { buildRatesCache(base) }
                 .get { fetchAllRates(base) }[target] ?: 0.0
@@ -36,7 +37,7 @@ class FrankfurterClient(
             0.0
         }
 
-    fun getHistoricalRates(
+    override fun getHistoricalRates(
         start: LocalDate,
         end: LocalDate,
         base: String,
