@@ -6,7 +6,7 @@ import org.hibernate.type.SqlTypes
 import java.time.Instant
 
 @Entity
-@Table(name = "events_outboxevent")
+@Table(name = "outbox_event")
 class OutboxJpaEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

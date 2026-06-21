@@ -22,7 +22,7 @@ private val log = LoggerFactory.getLogger(CentralAuthGrpcClient::class.java)
 @Component
 class CentralAuthGrpcClient(
     @Value("\${ai-service.grpc.target:localhost:50051}") private val target: String,
-    @Value("\${central-auth.service-key:internal-service-key}") private val serviceKey: String,
+    @Value("\${central-auth.service-key}") private val serviceKey: String,
 ) {
     private val channel = ManagedChannelBuilder.forTarget(target)
         .usePlaintext()

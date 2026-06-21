@@ -33,17 +33,16 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
 
     // ── Kafka ────────────────────────────────────────────────────────────────
-    implementation("org.springframework.kafka:spring-kafka")
+    implementation("org.springframework.boot:spring-boot-starter-kafka")
 
     // ── DB / Flyway ──────────────────────────────────────────────────────────
-    implementation("org.flywaydb:flyway-core")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.postgresql:postgresql")
 
@@ -64,9 +63,17 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    developmentOnly(
+        "org.springframework.boot:spring-boot-devtools"
+    )
 }
 
 // ── Protobuf / gRPC code generation ──────────────────────────────────────────
+// Uses protoc 3.25.3 to generate code compatible with grpc-protobuf:1.62.2.
+// buf.gen.kotlin.yaml documents equivalent buf remote plugin configuration;
+// buf remote plugins currently emit protobuf v4.x code which requires
+// upgrading grpc to 1.68+ and protobuf-java to 4.x before switching.
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:$protobufVersion"
@@ -90,12 +97,13 @@ protobuf {
             }
         }
     }
-    // Point to the shared proto directory so auth.proto + ai.proto are found
-    sourceSets {
-        main {
-            proto {
-                srcDir("${rootProject.projectDir}/../proto")
-            }
+}
+
+// Points to the shared proto directory so auth.proto, ai.proto, kafka.proto are all found.
+sourceSets {
+    main {
+        proto {
+            srcDir("../proto")
         }
     }
 }

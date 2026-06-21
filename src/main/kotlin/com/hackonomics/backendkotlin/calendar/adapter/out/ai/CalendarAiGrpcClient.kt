@@ -1,7 +1,7 @@
 package com.hackonomics.backendkotlin.calendar.adapter.out.ai
 
-import ai.v1.CalendarAdviceRequest
-import ai.v1.CalendarAiServiceGrpcKt
+import com.hackonomics.backendkotlin.ai.v1.CalendarAdviceRequest
+import com.hackonomics.backendkotlin.ai.v1.CalendarAiServiceGrpcKt
 import io.grpc.ManagedChannelBuilder
 import io.grpc.Metadata
 import jakarta.annotation.PreDestroy
@@ -21,7 +21,7 @@ data class AdviceItem(
 @Component
 class CalendarAiGrpcClient(
     @Value("\${ai-service.grpc.target:localhost:50052}") private val target: String,
-    @Value("\${ai-service.internal-token:internal-token}") private val token: String,
+    @Value("\${ai-service.internal-token}") private val token: String,
 ) {
     private val channel = ManagedChannelBuilder.forTarget(target)
         .usePlaintext()

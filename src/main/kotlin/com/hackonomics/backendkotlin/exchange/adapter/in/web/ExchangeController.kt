@@ -1,5 +1,7 @@
 package com.hackonomics.backendkotlin.exchange.adapter.`in`.web
 
+import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRateResponse
+import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRateSeriesResponse
 import com.hackonomics.backendkotlin.exchange.application.service.ExchangeService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -10,24 +12,27 @@ import java.time.LocalDate
 class ExchangeController(private val service: ExchangeService) {
 
     @GetMapping("/usd-to/{currency}/")
-    fun usdTo(@PathVariable currency: String): ResponseEntity<Map<String, Any>> {
-        val rate = service.getUsdRate(currency.uppercase())
-        return ResponseEntity.ok(mapOf("base" to "USD", "target" to currency.uppercase(), "rate" to rate))
+    fun usdTo(@PathVariable currency: String): ResponseEntity<ExchangeRateResponse> {
+        val cur = currency.uppercase()
+        val rate = service.getUsdRate(cur)
+        return ResponseEntity.ok(ExchangeRateResponse("USD", cur, rate))
     }
 
     @GetMapping("/history/")
     fun history(
         @RequestParam(required = false) currency: String?,
         @RequestParam(defaultValue = "6m") period: String,
-    ): ResponseEntity<Map<String, Any>> {
-        val cur = (currency ?: service.defaultCurrency).uppercase()
+    ): ResponseEntity<ExchangeRateSeriesResponse> {
+        val cur = (currency ?: ExchangeService.DEFAULT_CURRENCY).uppercase()
         val history = service.getUsdHistoryUntilToday(currency, period)
-        return ResponseEntity.ok(mapOf(
-            "base" to "USD",
-            "target" to cur,
-            "period" to period,
-            "end_date" to LocalDate.now().toString(),
-            "history" to history.map { mapOf("date" to it.date, "rate" to it.rate) },
-        ))
+        return ResponseEntity.ok(
+            ExchangeRateSeriesResponse(
+                base = "USD",
+                target = cur,
+                period = period,
+                endDate = LocalDate.now().toString(),
+                history = history,
+            )
+        )
     }
 }

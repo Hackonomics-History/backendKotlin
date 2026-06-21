@@ -5,7 +5,7 @@ import java.math.BigDecimal
 import java.time.Instant
 
 @Entity
-@Table(name = "accounts_accountmodel")
+@Table(name = "account")
 class AccountJpaEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -13,9 +13,6 @@ class AccountJpaEntity(
 
     @Column(name = "ory_identity_id", length = 128, unique = true)
     val oryIdentityId: String?,
-
-    @Column(name = "user_id", unique = true)
-    val userId: Int? = null,
 
     @Column(name = "country_code", length = 2)
     var countryCode: String?,

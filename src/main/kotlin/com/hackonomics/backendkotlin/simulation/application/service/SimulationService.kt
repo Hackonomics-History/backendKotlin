@@ -3,8 +3,8 @@ package com.hackonomics.backendkotlin.simulation.application.service
 import com.hackonomics.backendkotlin.account.application.port.out.AccountRepository
 import com.hackonomics.backendkotlin.common.error.BusinessException
 import com.hackonomics.backendkotlin.common.error.ErrorCode
-import com.hackonomics.backendkotlin.exchange.application.service.ExchangeService
-import com.hackonomics.backendkotlin.exchange.application.service.HistoryRow
+import com.hackonomics.backendkotlin.exchange.adapter.`in`.web.dto.ExchangeRatePoint
+import com.hackonomics.backendkotlin.exchange.application.port.out.ExchangeHistoryPort
 import com.hackonomics.backendkotlin.simulation.domain.SimulationResult
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -15,7 +15,7 @@ import java.time.LocalDate
 @Service
 class SimulationService(
     private val accountRepo: AccountRepository,
-    private val exchangeService: ExchangeService,
+    private val exchangeHistoryPort: ExchangeHistoryPort,
 ) {
     private val periodMap = mapOf("1y" to 12, "2y" to 24)
     private val defaultDepositRate = BigDecimal("3.0")
@@ -39,7 +39,7 @@ class SimulationService(
             ?: throw BusinessException(ErrorCode.DATA_NOT_FOUND)
         if (monthlyAmount <= BigDecimal.ZERO) throw BusinessException(ErrorCode.INVALID_PARAMETER)
 
-        val history = exchangeService.getUsdHistoryUntilToday(currency, period)
+        val history = exchangeHistoryPort.getUsdHistoryUntilToday(currency, period)
         if (history.isEmpty()) throw BusinessException(ErrorCode.DATA_NOT_FOUND)
 
         val monthlyRates = extractMonthlyRates(history, months)
@@ -82,9 +82,9 @@ class SimulationService(
         )
     }
 
-    private fun extractMonthlyRates(history: List<HistoryRow>, months: Int): List<HistoryRow> {
+    private fun extractMonthlyRates(history: List<ExchangeRatePoint>, months: Int): List<ExchangeRatePoint> {
         val seen = mutableSetOf<Pair<Int, Int>>()
-        val result = mutableListOf<HistoryRow>()
+        val result = mutableListOf<ExchangeRatePoint>()
         for (h in history) {
             val d = LocalDate.parse(h.date)
             val key = d.year to d.monthValue

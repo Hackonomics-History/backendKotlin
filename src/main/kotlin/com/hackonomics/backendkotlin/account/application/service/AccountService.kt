@@ -1,10 +1,9 @@
 package com.hackonomics.backendkotlin.account.application.service
 
+import com.hackonomics.backendkotlin.account.adapter.`in`.web.dto.AccountResponse
 import com.hackonomics.backendkotlin.account.application.port.out.AccountRepository
 import com.hackonomics.backendkotlin.account.application.port.out.ExchangeRatePort
 import com.hackonomics.backendkotlin.account.domain.Account
-import com.hackonomics.backendkotlin.common.error.BusinessException
-import com.hackonomics.backendkotlin.common.error.ErrorCode
 import com.hackonomics.backendkotlin.events.application.DomainEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,15 +25,15 @@ class AccountService(
     private val exchangeRatePort: ExchangeRatePort,
     private val eventPublisher: DomainEventPublisher,
 ) {
-    fun getAccount(oryId: String): Map<String, Any?>? {
+    fun getAccount(oryId: String): AccountResponse? {
         val account = accountRepo.findByOryId(oryId) ?: return null
         if (account.countryCode == null || account.currency == null ||
             account.annualIncome == null || account.monthlyInvestableAmount == null) return null
-        return mapOf(
-            "country_code" to account.countryCode,
-            "currency" to account.currency,
-            "annual_income" to account.annualIncome.toPlainString(),
-            "monthly_investable_amount" to account.monthlyInvestableAmount.toPlainString(),
+        return AccountResponse(
+            countryCode = account.countryCode,
+            currency = account.currency,
+            annualIncome = account.annualIncome.toPlainString(),
+            monthlyInvestableAmount = account.monthlyInvestableAmount.toPlainString(),
         )
     }
 
@@ -60,11 +59,9 @@ class AccountService(
         )
     }
 
-    fun getExchangeRate(oryId: String): ExchangeRateResult {
-        val account = accountRepo.findByOryId(oryId)
-            ?: throw BusinessException(ErrorCode.DATA_NOT_FOUND)
-        val currency = account.currency?.uppercase()
-            ?: throw BusinessException(ErrorCode.DATA_NOT_FOUND)
+    fun getExchangeRate(oryId: String): ExchangeRateResult? {
+        val account = accountRepo.findByOryId(oryId) ?: return null
+        val currency = account.currency?.uppercase() ?: return null
         val rate = exchangeRatePort.getUsdRate(currency)
         return ExchangeRateResult("USD", currency, rate)
     }
