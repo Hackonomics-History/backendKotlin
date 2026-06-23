@@ -4,9 +4,8 @@ import com.hackonomics.backendkotlin.account.application.port.out.AccountReposit
 import com.hackonomics.backendkotlin.auth.domain.OryIdentity
 import com.hackonomics.backendkotlin.meta.application.service.CountryService
 import com.hackonomics.backendkotlin.news.adapter.out.ai.NewsAiGrpcClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.springframework.http.MediaType
@@ -31,6 +30,7 @@ class NewsController(
     private val newsAiGrpcClient: NewsAiGrpcClient,
     private val accountRepo: AccountRepository,
     private val countryService: CountryService,
+    private val appScope: CoroutineScope,
 ) {
     private val updateIntervalHours = 6L
 
@@ -62,9 +62,12 @@ class NewsController(
         val countryCode = accountRepo.findByOryId(identity.id)?.countryCode
             ?: return ResponseEntity.badRequest().body(mapOf("error" to "Account or country not found"))
 
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        appScope.launch {
             runCatching { newsAiGrpcClient.generateNewsFull(countryCode, true) }
-                .onFailure { log.error("Background news refresh failed for {}", countryCode, it) }
+                .onFailure { e ->
+                    if (e is CancellationException) throw e
+                    log.error("Background news refresh failed for {}", countryCode, e)
+                }
         }
 
         return ResponseEntity.ok(mapOf(
@@ -79,7 +82,7 @@ class NewsController(
         val emitter = SseEmitter(90_000L)
         val countryCode = accountRepo.findByOryId(identity.id)?.countryCode ?: ""
 
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        appScope.launch {
             try {
                 newsAiGrpcClient.chatStream(req.question, countryCode, identity.id)
                     .collect { text ->
@@ -89,6 +92,9 @@ class NewsController(
                     }
                 emitter.send(SseEmitter.event().data("done"))
                 emitter.complete()
+            } catch (e: CancellationException) {
+                runCatching { emitter.complete() }
+                throw e
             } catch (e: Exception) {
                 log.error("SSE chat stream error", e)
                 emitter.completeWithError(e)

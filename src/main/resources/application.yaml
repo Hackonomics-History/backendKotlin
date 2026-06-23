@@ -61,6 +61,8 @@ fastapi:
 
 central-auth:
   service-key: ${CENTRAL_AUTH_SERVICE_KEY}
+  grpc:
+    target: ${CENTRAL_AUTH_GRPC_TARGET:localhost:50051}
 
 kotlin:
   service-key: ${KOTLIN_SERVICE_KEY}
