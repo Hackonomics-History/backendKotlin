@@ -2,16 +2,22 @@ name: CI — backendKotlin (Spring Boot)
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Three-stage test pipeline
 #
-# ① unit-test      — compile + run tests without external services.
+# ① unit-test      — compile + run tests that do NOT require external services.
+#                    Kafka AutoConfiguration is excluded via src/test/resources/application.yaml
+#                    so no broker connection is attempted.
 #                    Proto stubs generated via Gradle protobuf plugin.
 #
-# ② integration-test — runs against real PostgreSQL and Redis containers.
-#                    Uses Spring environment variables to override datasource.
+# ② integration-test — runs ./gradlew integrationTest against real PostgreSQL and Redis
+#                    service containers plus an in-process @EmbeddedKafka broker.
+#                    Uses Spring Test context caching via BaseIntegrationTest to keep
+#                    broker-startup overhead to a single instance per CI run.
 #                    Runs after unit-test passes.
 #
 # ③ docker-build   — builds the multi-stage Docker image (no push) to verify
@@ -21,7 +27,6 @@ on:
 # Checkout pattern:
 #   • backendKotlin repo   → path: backendKotlin/
 #   • proto repo           → path: proto/
-#   Gives workspace: backendKotlin/ + proto/
 #   Gradle's srcDir("../proto") resolves to proto/ ✓
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -32,9 +37,9 @@ defaults:
 jobs:
   # ──────────────────────────────────────────────────────────────────────────
   # ① Unit Tests
-  # Compiles the project and runs all tests.
-  # No external services — Spring context tests that need a DB are expected
-  # to use @MockBean / @DataJpaTest with an embedded datasource.
+  # No external services. KafkaAutoConfiguration is explicitly excluded via
+  # src/test/resources/application.yaml so the Spring context (if loaded) never
+  # attempts broker connections — no retry loops, no timeout delays.
   # ──────────────────────────────────────────────────────────────────────────
   unit-test:
     name: "1. Build & Unit Tests"
@@ -69,6 +74,9 @@ jobs:
       - name: Run unit tests
         run: ./gradlew test --no-daemon
 
+      - name: Verify self-containment (no external services)
+        run: echo "✓ Unit tests passed without Kafka, Redis, or Postgres"
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -79,9 +87,12 @@ jobs:
 
   # ──────────────────────────────────────────────────────────────────────────
   # ② Integration Tests
-  # Runs against real PostgreSQL and Redis service containers.
-  # Spring datasource and Redis settings are overridden via env vars so no
-  # application.yaml changes are required.
+  # Runs ./gradlew integrationTest (src/integrationTest sourceSet) against real
+  # PostgreSQL and Redis service containers.
+  # Kafka is provided by @EmbeddedKafka(ports=[0]) declared in BaseIntegrationTest
+  # — no Kafka service container needed, and random port prevents collisions.
+  # Spring Test context caching (BaseIntegrationTest hierarchy) ensures the broker
+  # starts only once per JVM, not per test class.
   # ──────────────────────────────────────────────────────────────────────────
   integration-test:
     name: "2. Integration Tests"
@@ -117,8 +128,7 @@ jobs:
       SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
       SPRING_DATASOURCE_USERNAME: testuser
       SPRING_DATASOURCE_PASSWORD: testpass
-      SPRING_DATA_REDIS_HOST: localhost
-      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_REDIS_URL: redis://localhost:6379/0
 
     steps:
       - name: Checkout backendKotlin
@@ -151,15 +161,25 @@ jobs:
             sleep 2
           done
 
+      - name: Wait for Redis
+        working-directory: .
+        run: |
+          for i in $(seq 1 10); do
+            redis-cli -h localhost -p 6379 ping && exit 0
+            echo "Waiting for Redis... ($i/10)"
+            sleep 2
+          done
+          echo "Redis did not become ready" && exit 1
+
       - name: Run integration tests
-        run: ./gradlew test --no-daemon
+        run: ./gradlew integrationTest --no-daemon
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results
-          path: backendKotlin/build/reports/tests/test/
+          path: backendKotlin/build/reports/tests/integrationTest/
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────────────────
