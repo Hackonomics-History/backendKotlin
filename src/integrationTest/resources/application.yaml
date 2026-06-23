@@ -1,0 +1,11 @@
+ai-service:
+  internal-token: test-ai-token
+
+central-auth:
+  service-key: test-central-auth-key
+
+kotlin:
+  service-key: test-kotlin-service-key
+
+restcountries:
+  api-key: test-countries-api-key

@@ -106,7 +106,22 @@ sourceSets {
             srcDir("../proto")
         }
     }
+    // Integration tests: full Spring context + @EmbeddedKafka + real Postgres/Redis (via CI containers).
+    // Kept separate from src/test so that unit-test classpath never sees these heavyweight configs.
+    val integrationTest by creating {
+        kotlin.srcDir("src/integrationTest/kotlin")
+        resources.srcDir("src/integrationTest/resources")
+        compileClasspath += sourceSets.main.get().output
+        runtimeClasspath += output + sourceSets.main.get().output
+    }
 }
+
+// Integration test configurations inherit all test dependencies (spring-boot-starter-test,
+// spring-kafka-test, etc.) declared in testImplementation / testRuntimeOnly.
+configurations[sourceSets["integrationTest"].implementationConfigurationName]
+    .extendsFrom(configurations.testImplementation.get())
+configurations[sourceSets["integrationTest"].runtimeOnlyConfigurationName]
+    .extendsFrom(configurations.testRuntimeOnly.get())
 
 kotlin {
     compilerOptions {
@@ -122,4 +137,12 @@ allOpen {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.register<Test>("integrationTest") {
+    description = "Runs integration tests with real Postgres/Redis and embedded Kafka."
+    group = "verification"
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
+    shouldRunAfter(tasks.test)
 }

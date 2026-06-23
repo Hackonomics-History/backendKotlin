@@ -1,0 +1,7 @@
+# Unit-test profile — no external services (Kafka, Redis, Postgres) are available.
+# KafkaAutoConfiguration is excluded so Spring never attempts broker discovery/connection
+# during unit tests, preventing retry loops and timeout delays.
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
