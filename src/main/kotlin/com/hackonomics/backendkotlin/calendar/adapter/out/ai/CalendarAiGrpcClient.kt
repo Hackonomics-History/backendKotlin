@@ -2,14 +2,13 @@ package com.hackonomics.backendkotlin.calendar.adapter.out.ai
 
 import com.hackonomics.backendkotlin.ai.v1.CalendarAdviceRequest
 import com.hackonomics.backendkotlin.ai.v1.CalendarAiServiceGrpcKt
-import io.grpc.ManagedChannelBuilder
+import io.grpc.ManagedChannel
 import io.grpc.Metadata
-import jakarta.annotation.PreDestroy
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.util.concurrent.TimeUnit
 
-private val log = LoggerFactory.getLogger(CalendarAiGrpcClient::class.java)
+private const val GET_ADVICE_DEADLINE_SECONDS = 15L
 
 data class AdviceItem(
     val title: String,
@@ -20,13 +19,9 @@ data class AdviceItem(
 
 @Component
 class CalendarAiGrpcClient(
-    @Value("\${ai-service.grpc.target:localhost:50052}") private val target: String,
     @Value("\${ai-service.internal-token}") private val token: String,
+    private val channel: ManagedChannel,
 ) {
-    private val channel = ManagedChannelBuilder.forTarget(target)
-        .usePlaintext()
-        .build()
-
     private val stub = CalendarAiServiceGrpcKt.CalendarAiServiceCoroutineStub(channel)
 
     private fun meta(): Metadata = Metadata().apply {
@@ -45,7 +40,7 @@ class CalendarAiGrpcClient(
             .setCountryContext(countryContext)
             .setUserId(userId)
             .build()
-        val resp = stub.getAdvice(req, meta())
+        val resp = stub.withDeadlineAfter(GET_ADVICE_DEADLINE_SECONDS, TimeUnit.SECONDS).getAdvice(req, meta())
         return resp.itemsList.map { item ->
             AdviceItem(
                 title = item.title,
@@ -54,11 +49,5 @@ class CalendarAiGrpcClient(
                 priority = item.priority,
             )
         }
-    }
-
-    @PreDestroy
-    fun shutdown() {
-        log.info("Shutting down CalendarAiGrpcClient channel")
-        channel.shutdown()
     }
 }
